@@ -5,6 +5,7 @@ function Assets() {
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [category, setCategory] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     fetch("http://localhost:3001/assets")
@@ -16,19 +17,37 @@ function Assets() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    fetch("http://localhost:3001/assets", {
-      method: "POST",
+    if (!name || !symbol || !category) return;
+
+    const method = editingId ? "PUT" : "POST";
+    const url = editingId
+      ? `http://localhost:3001/assets/${editingId}`
+      : "http://localhost:3001/assets";
+
+    fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ name, symbol, category }),
     })
       .then((res) => res.json())
-      .then((newAsset) => {
-        setAssets((prev) => [...prev, newAsset]);
+      .then((data) => {
+        if (editingId) {
+          // update existing
+          setAssets((prev) =>
+            prev.map((asset) =>
+              asset.id === Number(editingId) ? data : asset,
+            ),
+          );
+        } else {
+          // add new
+          setAssets((prev) => [...prev, data]);
+        }
         setName("");
         setSymbol("");
         setCategory("");
+        setEditingId(null);
       })
       .catch((err) => console.error(err));
   };
@@ -44,7 +63,11 @@ function Assets() {
   };
   return (
     <div>
-      <h2>Assets</h2>
+      <h2>
+        {editingId
+          ? `Editing: ${assets.find((a) => a.id === editingId)?.name || "Loading..."}`
+          : "Assets"}
+      </h2>
 
       <form onSubmit={handleSubmit}>
         <input
@@ -68,7 +91,23 @@ function Assets() {
           onChange={(e) => setCategory(e.target.value)}
         />
 
-        <button type="submit">Add Asset</button>
+        <button type="submit">
+          {editingId ? "Update Asset" : "Add Asset"}
+        </button>
+
+        {editingId && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setName("");
+              setSymbol("");
+              setCategory("");
+            }}
+          >
+            Cancel
+          </button>
+        )}
       </form>
 
       {assets.map((asset) => (
@@ -78,6 +117,16 @@ function Assets() {
           </p>
           <p>{asset.category}</p>
           <button onClick={() => handleDelete(asset.id)}>Delete</button>
+          <button
+            onClick={() => {
+              setEditingId(asset.id);
+              setName(asset.name);
+              setSymbol(asset.symbol);
+              setCategory(asset.category);
+            }}
+          >
+            Edit
+          </button>
           <hr />
         </div>
       ))}
