@@ -7,6 +7,7 @@ function Assets() {
   const [category, setCategory] = useState("");
   const [editingId, setEditingId] = useState(null);
 
+  // fetch assets
   useEffect(() => {
     fetch("http://localhost:3001/assets")
       .then((res) => res.json())
@@ -14,6 +15,7 @@ function Assets() {
       .catch((err) => console.error(err));
   }, []);
 
+  // create/update dependent on editing state
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -51,6 +53,8 @@ function Assets() {
       })
       .catch((err) => console.error(err));
   };
+
+  // delete asset from db/update UI
   const handleDelete = (id) => {
     fetch(`http://localhost:3001/assets/${id}`, {
       method: "DELETE",
@@ -110,26 +114,30 @@ function Assets() {
         )}
       </form>
 
-      {assets.map((asset) => (
-        <div key={asset.id}>
-          <p>
-            {asset.name} ({asset.symbol})
-          </p>
-          <p>{asset.category}</p>
-          <button onClick={() => handleDelete(asset.id)}>Delete</button>
-          <button
-            onClick={() => {
-              setEditingId(asset.id);
-              setName(asset.name);
-              setSymbol(asset.symbol);
-              setCategory(asset.category);
-            }}
-          >
-            Edit
-          </button>
-          <hr />
-        </div>
-      ))}
+      {/* sort assets alphabetically before render  */}
+      {assets
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((asset) => (
+          <div key={asset.id}>
+            <p>
+              {asset.name} ({asset.symbol})
+            </p>
+            <p>{asset.category}</p>
+            <button onClick={() => handleDelete(asset.id)}>Delete</button>
+            <button
+              onClick={() => {
+                setEditingId(asset.id);
+                setName(asset.name);
+                setSymbol(asset.symbol);
+                setCategory(asset.category);
+              }}
+            >
+              Edit
+            </button>
+            <hr />
+          </div>
+        ))}
     </div>
   );
 }

@@ -3,6 +3,7 @@ const router = express.Router();
 
 const db = require("../db/knex");
 
+// GET/fetch assets from db
 router.get("/", async (req, res) => {
   try {
     const assets = await db("assets");
@@ -12,6 +13,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+// POST/create asset
 router.post("/", async (req, res) => {
   try {
     const { name, symbol, category } = req.body;
@@ -26,6 +28,7 @@ router.post("/", async (req, res) => {
   }
 });
 
+// DELETE/remove asset by id
 router.delete("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -42,6 +45,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// PUT/update asset
 router.put("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
