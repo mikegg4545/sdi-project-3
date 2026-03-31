@@ -1,69 +1,65 @@
 const express = require("express");
 const router = express.Router();
 
-let assets = [
-  {
-    id: 1,
-    name: "Bitcoin",
-    symbol: "BTC",
-    category: "Store of Value",
-  },
-  {
-    id: 2,
-    name: "Ethereum",
-    symbol: "ETH",
-    category: "Smart Contracts",
-  },
-  {
-    id: 3,
-    name: "Solana",
-    symbol: "SOL",
-    category: "Layer 1",
-  },
-];
+const db = require("../db/knex");
 
-router.get("/", (req, res) => {
-  res.json(assets);
-});
-
-router.post("/", (req, res) => {
-  const newAsset = {
-    id: assets.length + 1,
-    name: req.body.name,
-    symbol: req.body.symbol,
-    category: req.body.category,
-  };
-
-  assets.push(newAsset);
-
-  res.status(201).json(newAsset);
-});
-router.delete("/:id", (req, res) => {
-  const assetId = Number(req.params.id);
-
-  assets = assets.filter((asset) => asset.id !== assetId);
-
-  res.json({ message: "Asset deleted" });
-});
-router.put("/:id", (req, res) => {
-  const assetId = Number(req.params.id);
-
-  const existingAsset = assets.find((asset) => asset.id === assetId);
-
-  if (!existingAsset) {
-    return res.status(404).json({ error: "Asset not found" });
+router.get("/", async (req, res) => {
+  try {
+    const assets = await db("assets");
+    res.json(assets);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch assets" });
   }
+});
 
-  const updatedAsset = {
-    id: assetId,
-    name: req.body.name,
-    symbol: req.body.symbol,
-    category: req.body.category,
-  };
+router.post("/", async (req, res) => {
+  try {
+    const { name, symbol, category } = req.body;
 
-  assets = assets.map((asset) => (asset.id === assetId ? updatedAsset : asset));
+    const [newAsset] = await db("assets")
+      .insert({ name, symbol, category })
+      .returning("*");
 
-  res.json(updatedAsset);
+    res.status(201).json(newAsset);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create asset" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const deleted = await db("assets").where({ id }).del();
+
+    if (deleted === 0) {
+      return res.status(404).json({ error: "Asset not found" });
+    }
+
+    res.json({ message: "Asset deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete asset" });
+  }
+});
+
+router.put("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, symbol, category } = req.body;
+
+    const [updatedAsset] = await db("assets")
+      .where({ id })
+      .update({ name, symbol, category })
+      .returning("*");
+
+    if (updatedAssets.length === 0) {
+      return res.status(404).json({ error: "Asset not found" });
+    }
+
+    res.json(updatedAssets[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update asset" });
+  }
 });
 
 module.exports = router;
