@@ -4,22 +4,32 @@ function Assets() {
   const [assets, setAssets] = useState([]);
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [categoryId, setCategoryId] = useState("");
   const [editingId, setEditingId] = useState(null);
 
   // fetch assets
   useEffect(() => {
+    fetchAssets();
+
+    fetch("http://localhost:3001/categories")
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  const fetchAssets = () => {
     fetch("http://localhost:3001/assets")
       .then((res) => res.json())
       .then((data) => setAssets(data))
       .catch((err) => console.error(err));
-  }, []);
+  };
 
   // create/update dependent on editing state
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!name || !symbol || !category) return;
+    if (!name || !symbol || !categoryId) return;
 
     const method = editingId ? "PUT" : "POST";
     const url = editingId
@@ -31,24 +41,22 @@ function Assets() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, symbol, category }),
+      body: JSON.stringify({ name, symbol, category_id: Number(categoryId) }),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        if (editingId) {
-          // update existing
-          setAssets((prev) =>
-            prev.map((asset) =>
-              asset.id === Number(editingId) ? data : asset,
-            ),
-          );
-        } else {
-          // add new
-          setAssets((prev) => [...prev, data]);
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((err) => {
+            throw new Error(err.error || "Request failed");
+          });
         }
+        return res.json();
+      })
+
+      .then(() => {
+        fetchAssets();
         setName("");
         setSymbol("");
-        setCategory("");
+        setCategoryId("");
         setEditingId(null);
       })
       .catch((err) => console.error(err));
@@ -61,7 +69,7 @@ function Assets() {
     })
       .then((res) => res.json())
       .then(() => {
-        setAssets((prev) => prev.filter((asset) => asset.id !== id));
+        fetchAssets();
       })
       .catch((err) => console.error(err));
   };
@@ -88,12 +96,17 @@ function Assets() {
           onChange={(e) => setSymbol(e.target.value)}
         />
 
-        <input
-          type="text"
-          placeholder="Category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        />
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+        >
+          <option value="">Select Category</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
 
         <button type="submit">
           {editingId ? "Update Asset" : "Add Asset"}
@@ -106,7 +119,7 @@ function Assets() {
               setEditingId(null);
               setName("");
               setSymbol("");
-              setCategory("");
+              setCategoryId("");
             }}
           >
             Cancel
@@ -130,7 +143,7 @@ function Assets() {
                 setEditingId(asset.id);
                 setName(asset.name);
                 setSymbol(asset.symbol);
-                setCategory(asset.category);
+                setCategoryId(String(asset.category_id));
               }}
             >
               Edit

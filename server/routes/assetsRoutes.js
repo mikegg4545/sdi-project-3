@@ -6,7 +6,16 @@ const db = require("../db/knex");
 // GET/fetch assets from db
 router.get("/", async (req, res) => {
   try {
-    const assets = await db("assets");
+    const assets = await db("assets")
+      .join("categories", "assets.category_id", "categories.id")
+      .select(
+        "assets.id",
+        "assets.name",
+        "assets.symbol",
+        "assets.category_id",
+        "categories.name as category",
+      );
+
     res.json(assets);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch assets" });
@@ -16,10 +25,21 @@ router.get("/", async (req, res) => {
 // POST/create asset
 router.post("/", async (req, res) => {
   try {
-    const { name, symbol, category } = req.body;
+    const { name, symbol, category_id } = req.body;
+
+    const category = await db("categories").where({ id: category_id }).first();
+
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
 
     const [newAsset] = await db("assets")
-      .insert({ name, symbol, category })
+      .insert({
+        name,
+        symbol,
+        category_id,
+        category: category.name,
+      })
       .returning("*");
 
     res.status(201).json(newAsset);
@@ -49,11 +69,22 @@ router.delete("/:id", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { name, symbol, category } = req.body;
+    const { name, symbol, category_id } = req.body;
 
-    const [updatedAsset] = await db("assets")
+    const category = await db("categories").where({ id: category_id }).first();
+
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    const updatedAssets = await db("assets")
       .where({ id })
-      .update({ name, symbol, category })
+      .update({
+        name,
+        symbol,
+        category_id,
+        category: category.name,
+      })
       .returning("*");
 
     if (updatedAssets.length === 0) {
